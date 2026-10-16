@@ -1,0 +1,11 @@
+include README.md LICENSE DISCLAIMER.md THIRD_PARTY_NOTICES.md
+include CONTRIBUTING.md SECURITY.md CHANGELOG.md pyproject.toml MANIFEST.in
+include .gitignore .gitattributes VideoGaferadeba_Colab.ipynb
+include scripts/build_notebook.py scripts/check_release.py scripts/package_release.py
+include scripts/video-info.ps1 scripts/cut-clip.ps1
+recursive-include src *.py LICENSE-*.txt NOTICE.md
+recursive-include tests *.py
+recursive-include docs *.md
+recursive-include .github *.yml *.yaml *.md
+global-exclude *.py[cod]
+global-exclude __pycache__

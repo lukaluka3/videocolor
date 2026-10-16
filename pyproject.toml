@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "videocolor-local"
+version = "0.2.0"
+description = "Local black-and-white video colorization with previews and recoverable jobs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT AND Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "src/videocolor/_vendor/ddcolor/LICENSE-*.txt", "src/videocolor/_vendor/ddcolor/NOTICE.md"]
+authors = [{name = "VideoColor contributors"}]
+dependencies = [
+    "numpy>=1.26,<3",
+    "opencv-python-headless>=4.10,<5",
+    "torch>=2.6,<3",
+    "huggingface-hub>=0.28,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1", "build>=1.2,<2"]
+
+[project.scripts]
+videocolor = "videocolor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"videocolor._vendor.ddcolor" = ["LICENSE-*.txt", "NOTICE.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["src/videocolor/_vendor", "VideoGaferadeba_Colab.ipynb"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
