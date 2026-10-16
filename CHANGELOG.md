@@ -1,6 +1,18 @@
 # Changelog
 
-## 0.2.0 — Unreleased
+## 0.3.0 — Unreleased
+
+- Add a natural, film-like grade, on by default (`--no-natural-grade`, a
+  desktop checkbox, and a notebook option turn it off). It removes the
+  uniform green/teal cast the model tends to put into dark content, ignoring
+  near-black letterbox bars when measuring it; fades color toward black and
+  near-white; softly limits very saturated colors; and slightly softens color
+  edges. Source brightness and detail are unchanged.
+- Color-processing revision 3. Interrupted jobs from earlier versions must be
+  finished with that version or restarted in a new folder; completed older
+  results remain accessible.
+
+## 0.2.0
 
 - Add neutral-by-default manual tint and warmth controls to the command line,
   desktop window, and notebook, with saved settings and resume validation.

@@ -46,7 +46,7 @@ def parse_settings(values: dict) -> dict:
     return dict(model=values["model"], device=values["device"], start=start,
                 duration=seconds, max_height=height, input_size=input_size,
                 smoothing=smoothing, color_strength=color_strength, tint=tint, warmth=warmth,
-                resume=bool(values["resume"]))
+                natural_grade=bool(values.get("natural_grade", True)), resume=bool(values["resume"]))
 
 
 def load_resume_settings(folder: str | Path) -> tuple[dict, str]:
@@ -70,6 +70,9 @@ def load_resume_settings(folder: str | Path) -> tuple[dict, str]:
         smoothing = float(config["smoothing"])
         color_strength = float(config.get("color_strength", 1.0))
         tint, warmth = float(config.get("tint", 0.0)), float(config.get("warmth", 0.0))
+        natural_grade = config.get("natural_grade", True)
+        if not isinstance(natural_grade, bool):
+            raise ValueError("Invalid natural grade setting.")
         input_size = config["input_size"]
         if not math.isfinite(start) or start < 0:
             raise ValueError("Invalid start time.")
@@ -93,7 +96,7 @@ def load_resume_settings(folder: str | Path) -> tuple[dict, str]:
         "full": duration is None, "height": str(height) if height is not None else "720",
         "no_resize": height is None, "smoothing": str(smoothing), "input_size": str(input_size),
         "color_strength": str(color_strength),
-        "tint": str(tint), "warmth": str(warmth),
+        "tint": str(tint), "warmth": str(warmth), "natural_grade": natural_grade,
     }, source_name
 
 
@@ -122,7 +125,8 @@ def launch() -> None:
     defaults = dict(source="", output="", model="tiny", device="auto", input_size="256", start="0", duration="10", height="720", smoothing="0.35", color_strength="0.85")
     fields = {name: tk.StringVar(value=value) for name, value in defaults.items()}
     fields.update(tint=tk.StringVar(value="0"), warmth=tk.StringVar(value="0"))
-    fields.update(full=tk.BooleanVar(value=False), resume=tk.BooleanVar(value=False), no_resize=tk.BooleanVar(value=False))
+    fields.update(full=tk.BooleanVar(value=False), resume=tk.BooleanVar(value=False), no_resize=tk.BooleanVar(value=False),
+                  natural_grade=tk.BooleanVar(value=True))
     settings_widgets = []
     events: queue.Queue = queue.Queue()
     cancel = threading.Event()
@@ -194,7 +198,8 @@ def launch() -> None:
               wraplength=340).grid(row=4, rowspan=2, column=2, columnspan=2, sticky="w")
     extent = ttk.Frame(frame)
     extent.grid(row=6, column=0, columnspan=3, sticky="w", pady=6)
-    for key, label in (("full", "Process to end (may take a long time)"), ("no_resize", "Preserve source size (uses more disk)")):
+    for key, label in (("natural_grade", "Natural film look (neutral shadows, no neon colors)"),
+                       ("full", "Process to end (may take a long time)"), ("no_resize", "Preserve source size (uses more disk)")):
         checkbox = ttk.Checkbutton(extent, text=label, variable=fields[key])
         checkbox.pack(side="left", padx=(0, 14))
         settings_widgets.append((checkbox, "normal"))

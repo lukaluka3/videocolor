@@ -33,7 +33,7 @@ def package_release(output: Path, root: Path = ROOT) -> list[str]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT.parent / "VideoColor-v0.2.0-source.zip",
+    parser.add_argument("--output", type=Path, default=ROOT.parent / "VideoColor-v0.3.0-source.zip",
                         help="New ZIP destination (an existing file is never overwritten)")
     args = parser.parse_args(argv)
     try:

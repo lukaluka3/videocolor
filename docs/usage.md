@@ -101,6 +101,18 @@ skin, sky, and clothing together before applying a correction to a full clip.
 Offsets affect fresh predictions once, before color strength and smoothing;
 they do not accumulate on every frame. Strength `0` remains grayscale.
 
+The natural grade is on by default. It gives the colors a film-like response:
+a uniform green/teal cast in dark picture content is removed (near-black
+letterbox bars are ignored when measuring it), deep shadows fade to neutral
+black, near-white areas keep only a little color, and very saturated colors
+are softly limited. Color edges are slightly softened; detail and brightness
+always come from the source. Add `--no-natural-grade` to see the model's
+unmodified colors, for example when a scene is meant to be strongly colored.
+
+```console
+python -m videocolor process "clip.mp4" --output outputs/raw-colors --duration 2 --no-natural-grade
+```
+
 ```console
 python -m videocolor process "clip.mp4" --output outputs/balance-trial --duration 2 --model large --tint -6 --warmth 3
 ```
@@ -131,7 +143,7 @@ python -m videocolor process "clip.mp4" --output outputs/full --model tiny --ful
 ```
 
 Resume needs the same input, processing settings, and intact work files.
-Changing the model, time interval, size, color strength, tint, warmth, or smoothing means starting a new
+Changing the model, time interval, size, color strength, tint, warmth, natural grade, or smoothing means starting a new
 job in another output folder. Resume cannot restore data lost when a
 temporary Colab runtime is reset. Keep enough free space for the intermediate
 frames while the job is in progress.

@@ -122,7 +122,7 @@ def _frame_list(directory: Path, width: int, height: int, expected: int | None =
 def _validate_options(
     start: float, duration: float | None, max_height: int | None,
     input_size: int, smoothing: float, color_strength: float,
-    tint: float = 0.0, warmth: float = 0.0,
+    tint: float = 0.0, warmth: float = 0.0, natural_grade: bool = True,
 ) -> None:
     if not math.isfinite(start) or start < 0:
         raise ValueError("Start must be a finite number greater than or equal to zero.")
@@ -139,6 +139,8 @@ def _validate_options(
     for name, value in (("Tint", tint), ("Warmth", warmth)):
         if not math.isfinite(value) or not -20 <= value <= 20:
             raise ValueError(f"{name} must be a finite number between -20 and 20.")
+    if not isinstance(natural_grade, bool):
+        raise ValueError("Natural grade must be true or false.")
 
 
 def _disk_preflight(directory: Path, job: dict[str, Any], info: dict[str, Any]) -> None:
@@ -196,6 +198,7 @@ def process_video(
     color_strength: float = 0.85,
     tint: float = 0.0,
     warmth: float = 0.0,
+    natural_grade: bool = True,
     resume: bool = False,
     progress: Callable[[int, int], None] | None = None,
     _colorizer: Any = None,
@@ -209,12 +212,14 @@ def process_video(
     apart from the even dimensions required by the output codec.
     ``color_strength`` controls saturation of predicted colors, from grayscale
     (0) to full model chroma (1), without changing source luminance.
+    ``natural_grade`` (default on) gives a film-like color response: neutral
+    shadows without a green/teal cast, gentle highlights, and no neon colors.
 
     The progress callback receives ``(completed_frames, total_frames)`` and may
     raise ``InterruptedError`` to cancel between frames. The private colorizer
     hook is intended for isolated tests only; the normal path uses real weights.
     """
-    _validate_options(start, duration, max_height, input_size, smoothing, color_strength, tint, warmth)
+    _validate_options(start, duration, max_height, input_size, smoothing, color_strength, tint, warmth, natural_grade)
     if model not in ("tiny", "large") or device not in ("auto", "cpu", "cuda"):
         raise ValueError("Use model tiny/large and device auto/cpu/cuda.")
     source = Path(input_path).expanduser().resolve()
@@ -244,7 +249,7 @@ def process_video(
         "start": float(start), "duration": float(duration) if duration is not None else None,
         "max_height": max_height, "smoothing": float(smoothing),
         "color_strength": float(color_strength),
-        "tint": float(tint), "warmth": float(warmth),
+        "tint": float(tint), "warmth": float(warmth), "natural_grade": natural_grade,
         "width": width, "height": height, "fps": info["fps"],
     }
     with _job_lock(directory):
@@ -262,6 +267,10 @@ def process_video(
             saved_config = job.get("config")
             if isinstance(saved_config, dict):
                 saved_config = {"tint": 0.0, "warmth": 0.0, **saved_config}
+                # Manifests before revision 3 predate the grade. Their completed
+                # results stay usable; the revision check below refuses to mix
+                # their saved frames with newly graded ones.
+                saved_config.setdefault("natural_grade", natural_grade)
             if job.get("input") != fingerprint or saved_config != config:
                 raise JobError("Resume requires the same input bytes/name and processing options. Choose a new output directory.")
         else:
@@ -351,7 +360,8 @@ def process_video(
                 job["color_pipeline_revision"] = COLOR_PIPELINE_REVISION
                 job["status"] = "colorizing"
                 _save_json(marker, job)
-                temporal = TemporalChroma(smoothing, color_strength=color_strength, tint=tint, warmth=warmth)
+                temporal = TemporalChroma(smoothing, color_strength=color_strength, tint=tint, warmth=warmth,
+                                          natural_grade=natural_grade)
                 if completed:
                     previous_source = _read_frame(source_list[len(completed) - 1], width, height)
                     temporal.seed(previous_source, _read_frame(completed[-1], width, height))

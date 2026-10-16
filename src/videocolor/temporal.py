@@ -5,10 +5,10 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-from .color import render_gamut_safe
+from .color import film_chroma_response, remove_shadow_cast, render_gamut_safe
 
 
-COLOR_PIPELINE_REVISION = 2
+COLOR_PIPELINE_REVISION = 3
 
 
 # Keep the private helper import usable for existing isolated rendering checks.
@@ -23,10 +23,12 @@ class TemporalChroma:
     or disable blending. A strength of zero disables temporal blending.
     ``color_strength`` gently reduces model chroma: zero is grayscale, one is
     the full prediction. It does not change exposure or establish true colors.
+    ``natural_grade`` removes a dark-area cast, fades color toward black/white
+    and softly caps saturation, like real color film; lightness is unchanged.
     """
 
     def __init__(self, strength: float = 0.35, color_strength: float = 0.85,
-                 tint: float = 0.0, warmth: float = 0.0):
+                 tint: float = 0.0, warmth: float = 0.0, natural_grade: bool = True):
         if not np.isfinite(strength) or not 0 <= strength <= 1:
             raise ValueError("Smoothing strength must be between 0 and 1.")
         self.strength = float(strength)
@@ -37,6 +39,9 @@ class TemporalChroma:
             if not np.isfinite(value) or not -20 <= value <= 20:
                 raise ValueError(f"{name} must be a finite number between -20 and 20.")
         self.balance = np.array([tint, warmth], dtype=np.float32)
+        if not isinstance(natural_grade, bool):
+            raise ValueError("Natural grade must be true or false.")
+        self.natural_grade = natural_grade
         self.previous_l: np.ndarray | None = None
         self.previous_ab: np.ndarray | None = None
 
@@ -88,7 +93,14 @@ class TemporalChroma:
         # Manual Lab balance is applied once to each fresh prediction. Neutral
         # defaults do nothing; strength zero must remain grayscale even with
         # balance offsets. Never adjust the saved previous frame a second time.
-        chroma = 128.0 + self.color_strength * (chroma - 128.0 + self.balance)
+        # The natural grade also applies only to fresh predictions, for the same reason.
+        ab = chroma - 128.0
+        if self.natural_grade:
+            ab = remove_shadow_cast(luminance, ab)
+        ab = self.color_strength * (ab + self.balance)
+        if self.natural_grade:
+            ab = film_chroma_response(luminance, ab)
+        chroma = 128.0 + ab
         previous = self.previous_l
         if (
             self.strength > 0 and previous is not None and self.previous_ab is not None

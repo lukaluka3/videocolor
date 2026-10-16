@@ -162,6 +162,7 @@ def build() -> dict:
         color_strength = 0.85 # @param {type:"slider", min:0, max:1, step:0.05}
         tint = 0.0 # @param {type:"slider", min:-20, max:20, step:1}
         warmth = 0.0 # @param {type:"slider", min:-20, max:20, step:1}
+        natural_grade = True # @param {type:"boolean"}
         start_seconds = 0.0 # @param {type:"number"}
         preview_seconds = 10.0 # @param {type:"number"}
         full_video = False # @param {type:"boolean"}
@@ -203,7 +204,7 @@ def build() -> dict:
             input_video, job_directory, model=model, device=device, input_size=int(model_input_size),
             start=start_seconds, duration=None if full_video else preview_seconds,
             max_height=max_height, smoothing=smoothing, color_strength=color_strength,
-            tint=tint, warmth=warmth, resume=resume, progress=progress,
+            tint=tint, warmth=warmth, natural_grade=natural_grade, resume=resume, progress=progress,
         )
         print("Saved:", output_video)
     '''), markdown('''
@@ -238,6 +239,8 @@ def build() -> dict:
         - **Unwanted color cast:** compare a small manual `tint` adjustment (negative green, positive magenta) or
           `warmth` adjustment (negative blue, positive yellow). Both default to 0. These affect the whole image;
           review skin, clothing, and sky, and use a new job name for each comparison. They do not recover true colors.
+        - **Shadows or highlights look gray:** `natural_grade` (on by default) keeps deep shadows and near-white
+          areas neutral and softly limits neon colors, like real color film. Turn it off to see the model's raw colors.
 
         Before sharing your executed notebook, clear outputs and remove your own file paths/account details.
         Do not include private footage or downloaded model weights in a public repository.

@@ -93,6 +93,8 @@ def parser() -> argparse.ArgumentParser:
                          help="Manual color balance, -20 to 20: negative green, positive magenta (default: 0)")
     process.add_argument("--warmth", type=float, default=0.0,
                          help="Manual color balance, -20 to 20: negative blue, positive yellow (default: 0)")
+    process.add_argument("--no-natural-grade", action="store_true",
+                         help="Turn off the film-like grade (neutral shadows, gentle highlights, no neon colors)")
     process.add_argument("--cache-dir", help="Optional model cache directory")
     return result
 
@@ -129,7 +131,7 @@ def main(argv: list[str] | None = None) -> int:
             start=args.start, duration=None if args.full_video else args.duration,
             max_height=None if args.no_resize else args.max_height, smoothing=args.smoothing,
             color_strength=args.color_strength,
-            tint=args.tint, warmth=args.warmth,
+            tint=args.tint, warmth=args.warmth, natural_grade=not args.no_natural_grade,
             resume=args.resume, cache_dir=args.cache_dir, progress=progress,
         )
         print(f"Saved: {output}")

@@ -17,6 +17,8 @@ Always keep your source and label shared results as AI-colorized.
 - Two pretrained models: a smaller `tiny` model and a larger `large` model.
 - Motion-based color smoothing with scene-change detection to reduce flicker.
 - Adjustable color strength, with a restrained default to reduce oversaturation.
+- A natural, film-like grade by default: neutral shadows without the typical
+  green/teal AI cast, gentle highlights, and no neon colors.
 - Manual tint and warmth controls for comparing and correcting a whole-image cast.
 - Protection for black, white, and colors that would clip and alter brightness.
 - An MP4 viewing copy with audio retained through AAC encoding.

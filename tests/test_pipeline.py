@@ -211,6 +211,7 @@ def test_completed_older_job_can_still_be_opened_without_rerendering(make_video,
     job.pop("color_pipeline_revision")
     job["config"].pop("tint")
     job["config"].pop("warmth")
+    job["config"].pop("natural_grade")
     marker.write_text(json.dumps(job), encoding="utf-8")
     colorizer = FakeColorizer()
     assert process_video(source, output, duration=0.2, _colorizer=colorizer, resume=True) == result

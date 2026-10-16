@@ -242,3 +242,71 @@ def test_balance_with_zero_strength_is_gray_and_extreme_source_pixels_stay_exact
 def test_invalid_manual_balance(options):
     with pytest.raises(ValueError, match="between -20 and 20"):
         TemporalChroma(**options)
+
+
+def _lab_frame(lightness, ab):
+    """uint8-Lab rows: one (L, a, b) band per entry, 96 pixels wide."""
+    rows = []
+    for light, (a, b) in zip(lightness, ab):
+        band = np.empty((16, 96, 3), np.uint8)
+        band[:] = (light, a, b)
+        rows.append(band)
+    lab = np.concatenate(rows)
+    gray = lab.copy()
+    gray[:, :, 1:] = 128
+    return cv2.cvtColor(gray, cv2.COLOR_LAB2BGR), cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+def _chroma(image):
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB).astype(float)
+    return np.linalg.norm(lab[:, :, 1:] - 128, axis=2)
+
+
+def test_natural_grade_removes_a_teal_cast_from_dark_content():
+    # Two dark bands (L* about 10) predicted teal, one mid-tone band also teal-tinted.
+    source, predicted = _lab_frame([26, 26, 128], [(116, 120), (116, 120), (120, 124)])
+    graded = TemporalChroma(0, color_strength=1).apply(source, predicted)
+    raw = TemporalChroma(0, color_strength=1, natural_grade=False).apply(source, predicted)
+    assert _chroma(graded)[:32].mean() < 0.35 * _chroma(raw)[:32].mean()
+    assert _chroma(graded)[32:].mean() < _chroma(raw)[32:].mean()  # cast also eased in mid-tones
+
+
+def test_natural_grade_ignores_near_black_letterbox_when_estimating_the_cast():
+    # Black bars predicted strongly teal must not push mid-tone content toward orange.
+    source, predicted = _lab_frame([1, 1, 128], [(110, 115), (110, 115), (140, 145)])
+    with_bars = cv2.cvtColor(TemporalChroma(0, color_strength=1).apply(source, predicted), cv2.COLOR_BGR2LAB)
+    content_source, content_prediction = _lab_frame([128], [(140, 145)])
+    alone = cv2.cvtColor(TemporalChroma(0, color_strength=1).apply(content_source, content_prediction),
+                         cv2.COLOR_BGR2LAB)
+    assert np.max(abs(with_bars[40, :, 1:].astype(int) - alone[8, :, 1:].astype(int))) <= 1
+
+
+def test_natural_grade_softly_caps_neon_colors_and_keeps_moderate_ones():
+    source, vivid = _lab_frame([140], [(188, 128)])
+    _, moderate = _lab_frame([140], [(136, 128)])
+    graded_vivid = _chroma(TemporalChroma(0, color_strength=1).apply(source, vivid)).mean()
+    raw_vivid = _chroma(TemporalChroma(0, color_strength=1, natural_grade=False).apply(source, vivid)).mean()
+    graded_moderate = _chroma(TemporalChroma(0, color_strength=1).apply(source, moderate)).mean()
+    assert graded_vivid <= 35 < raw_vivid
+    assert graded_moderate > 7  # an 8-unit color is nearly unchanged
+
+
+def test_natural_grade_fades_color_toward_white_and_keeps_lightness():
+    source, predicted = _lab_frame([250, 140], [(140, 150), (140, 150)])
+    result = TemporalChroma(0, color_strength=1).apply(source, predicted)
+    chroma = _chroma(result)
+    assert chroma[:16].mean() < 0.5 * chroma[16:].mean()
+    source_l = cv2.cvtColor(source, cv2.COLOR_BGR2LAB)[:, :, 0].astype(float)
+    assert np.max(abs(cv2.cvtColor(result, cv2.COLOR_BGR2LAB)[:, :, 0] - source_l)) <= 1
+
+
+def test_natural_grade_off_matches_plain_color_strength():
+    source, predicted = gray_and_color(light=128, a=146, b=152)
+    result = cv2.cvtColor(TemporalChroma(0, natural_grade=False).apply(source, predicted), cv2.COLOR_BGR2LAB)
+    expected = 128 + 0.85 * (np.array([146, 152]) - 128)
+    assert np.max(abs(result[:, :, 1:].astype(float) - expected)) <= 1
+
+
+def test_invalid_natural_grade():
+    with pytest.raises(ValueError, match="Natural grade"):
+        TemporalChroma(natural_grade="yes")

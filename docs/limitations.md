@@ -23,6 +23,13 @@ claimed. The gamut protection keeps exact black/white and reduces chroma
 that would otherwise clip and change brightness. It does not fix a model's
 incorrect object classification or predicted hue.
 
+The default natural grade removes one estimated cast from dark content and
+reduces color near black, near white, and at very high saturation. It makes
+typical archive footage look less artificial; it is a look, not a
+restoration of true colors. A genuinely colored dark scene (for example
+deep green foliage at night) can lose some of its color; compare with
+`--no-natural-grade` when that matters.
+
 ## Motion and scene changes
 
 The model colorizes individual frames. VideoColor's motion-based chroma

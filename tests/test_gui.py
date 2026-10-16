@@ -41,7 +41,7 @@ def test_gui_rejects_invalid_settings_before_work(values, updates):
         parse_settings(values)
 
 
-@pytest.mark.parametrize("balance", [{}, {"tint": -6, "warmth": 3}])
+@pytest.mark.parametrize("balance", [{}, {"tint": -6, "warmth": 3}, {"natural_grade": False}])
 def test_resume_restores_cli_settings_without_storing_a_source_path(tmp_path, values, balance):
     job = {
         "format": "videocolor-job", "version": 1,
@@ -60,7 +60,19 @@ def test_resume_restores_cli_settings_without_storing_a_source_path(tmp_path, va
     parsed = parse_settings(values)
     assert parsed == dict(model="large", device="cpu", input_size=512, start=18.5,
                           duration=None, max_height=None, smoothing=0.2, color_strength=0.7,
-                          tint=balance.get("tint", 0.0), warmth=balance.get("warmth", 0.0), resume=True)
+                          tint=balance.get("tint", 0.0), warmth=balance.get("warmth", 0.0),
+                          natural_grade=balance.get("natural_grade", True), resume=True)
+
+
+def test_gui_rejects_a_non_boolean_natural_grade_in_a_manifest(tmp_path):
+    job = {
+        "format": "videocolor-job", "version": 1, "input": {"name": "clip.mp4"},
+        "config": {"model": "tiny", "device": "cpu", "input_size": 256, "start": 0, "duration": 2,
+                   "max_height": 240, "smoothing": 0.35, "natural_grade": "yes"},
+    }
+    (tmp_path / "videocolor-job.json").write_text(json.dumps(job), encoding="utf-8")
+    with pytest.raises(ValueError, match="natural grade"):
+        load_resume_settings(tmp_path)
 
 
 @pytest.mark.parametrize("manifest", [
